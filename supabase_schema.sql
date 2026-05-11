@@ -1,71 +1,26 @@
--- Run this entire file in Supabase SQL Editor
+-- Run this in Supabase SQL Editor
 
--- Master schedule entries
-CREATE TABLE IF NOT EXISTS schedule_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  term TEXT NOT NULL,
-  date DATE NOT NULL,
-  day_of_week TEXT NOT NULL,
-  section TEXT NOT NULL CHECK (section IN ('A', 'B', 'COMMON')),
-  slot_label TEXT NOT NULL,
-  slot_start TIME NOT NULL,
-  slot_end TIME NOT NULL,
-  course_code TEXT,
-  course_name_raw TEXT,
-  session_number INTEGER,
-  is_special_event BOOLEAN DEFAULT FALSE,
-  special_event_label TEXT,
-  custom_start_override TIME,
-  custom_end_override TIME,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+-- Drop old tables if migrating from v0
+DROP TABLE IF EXISTS schedule_entries;
+DROP TABLE IF EXISTS courses;
+
+-- User course selections (only table needed)
+CREATE TABLE IF NOT EXISTS user_courses (
+  id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID    NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  term        INTEGER NOT NULL CHECK (term IN (4, 5, 6)),
+  course_code TEXT    NOT NULL,
+  UNIQUE (user_id, term, course_code)
 );
 
--- Course master data
-CREATE TABLE IF NOT EXISTS courses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  term TEXT NOT NULL,
-  code TEXT NOT NULL,
-  full_name TEXT NOT NULL,
-  credits NUMERIC(3,1),
-  area TEXT,
-  faculty TEXT,
-  faculty_email TEXT,
-  classroom TEXT,
-  sections TEXT[],
-  group_email TEXT,
-  total_sessions INTEGER,
-  cr_a_name TEXT,
-  cr_a_email TEXT,
-  cr_a_phone TEXT,
-  cr_b_name TEXT,
-  cr_b_email TEXT,
-  cr_b_phone TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(term, code)
-);
+-- Row Level Security — students only ever see their own rows
+ALTER TABLE user_courses ENABLE ROW LEVEL SECURITY;
 
--- Enable Realtime on schedule_entries
-ALTER TABLE schedule_entries REPLICA IDENTITY FULL;
+CREATE POLICY "select_own" ON user_courses
+  FOR SELECT USING (auth.uid() = user_id);
 
--- Performance indexes
-CREATE INDEX IF NOT EXISTS idx_schedule_date ON schedule_entries(date);
-CREATE INDEX IF NOT EXISTS idx_schedule_term ON schedule_entries(term);
-CREATE INDEX IF NOT EXISTS idx_schedule_term_section ON schedule_entries(term, section);
-CREATE INDEX IF NOT EXISTS idx_schedule_course ON schedule_entries(course_code);
+CREATE POLICY "insert_own" ON user_courses
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Auto-update updated_at
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trg_schedule_updated_at
-  BEFORE UPDATE ON schedule_entries
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
--- Enable Realtime publication (run in Supabase dashboard or here)
--- ALTER PUBLICATION supabase_realtime ADD TABLE schedule_entries;
+CREATE POLICY "delete_own" ON user_courses
+  FOR DELETE USING (auth.uid() = user_id);

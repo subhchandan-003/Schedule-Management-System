@@ -1,62 +1,85 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useScheduleStore } from './store/useScheduleStore'
-import { Navbar } from './components/layout/Navbar'
-import { Sidebar } from './components/layout/Sidebar'
-import { Toast } from './components/ui/Toast'
-import Home from './pages/Home'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { supabase, hasAnyCourses } from './supabase'
+import Login from './pages/Login'
+import CourseSelect from './pages/CourseSelect'
 import Schedule from './pages/Schedule'
-import CourseList from './pages/CourseList'
-import Admin from './pages/Admin'
 
-function AppShell({ children }) {
+const ALLOWED_DOMAIN = '@iimsambalpur.ac.in'
+
+function Spinner() {
   return (
-    <div className="min-h-screen flex flex-col bg-navy">
-      <Navbar />
-      <div className="flex flex-1 max-w-7xl w-full mx-auto">
-        <Sidebar />
-        <main className="flex-1 min-w-0 flex flex-col">
-          {children}
-        </main>
-      </div>
-      <Toast />
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
     </div>
   )
 }
 
 export default function App() {
-  const onboardingDone = useScheduleStore((s) => s.onboardingDone)
+  const [session, setSession]         = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [domainError, setDomainError] = useState(false)
+  const [setupDone, setSetupDone]     = useState(false)
+
+  const processSession = async (sess) => {
+    if (!sess) {
+      setSession(null)
+      setLoading(false)
+      return
+    }
+
+    // Domain restriction
+    if (!sess.user.email?.endsWith(ALLOWED_DOMAIN)) {
+      await supabase.auth.signOut()
+      setDomainError(true)
+      setSession(null)
+      setLoading(false)
+      return
+    }
+
+    const done = await hasAnyCourses(sess.user.id)
+    setSetupDone(done)
+    setSession(sess)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => processSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, sess) => {
+      processSession(sess)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) return <Spinner />
 
   return (
-    <>
+    <BrowserRouter>
       <Routes>
-        <Route path="/" element={onboardingDone ? <Navigate to="/schedule" replace /> : <Home />} />
+        <Route
+          path="/"
+          element={
+            !session
+              ? <Login domainError={domainError} />
+              : setupDone
+                ? <Navigate to="/schedule" replace />
+                : <Navigate to="/select" replace />
+          }
+        />
+        <Route
+          path="/select"
+          element={
+            session
+              ? <CourseSelect session={session} onSaved={() => setSetupDone(true)} />
+              : <Navigate to="/" replace />
+          }
+        />
         <Route
           path="/schedule"
-          element={
-            <AppShell>
-              <Schedule />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/courses"
-          element={
-            <AppShell>
-              <CourseList />
-            </AppShell>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AppShell>
-              <Admin />
-            </AppShell>
-          }
+          element={session ? <Schedule session={session} /> : <Navigate to="/" replace />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <Toast />
-    </>
+    </BrowserRouter>
   )
 }
