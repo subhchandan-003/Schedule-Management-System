@@ -3,26 +3,26 @@ import { useNavigate } from 'react-router-dom'
 import { BookOpen, Settings, LogOut, RefreshCw, AlertCircle, Loader } from 'lucide-react'
 import { supabase, getUserCourses } from '../supabase'
 import { fetchSchedule } from '../sheetsAPI'
-import TermTabs from '../components/TermTabs'
 import ScheduleGrid from '../components/ScheduleGrid'
 
+const TERM = 4
+
 export default function Schedule({ session }) {
-  const [activeTerm, setActiveTerm]       = useState(4)
   const [entries, setEntries]             = useState([])
   const [userCourseIds, setUserCourseIds] = useState(new Set())
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState(null)
   const [refreshing, setRefreshing]       = useState(false)
-  const navigate  = useNavigate()
-  const token     = session?.provider_token
+  const navigate = useNavigate()
+  const token    = session?.provider_token
 
   const loadData = useCallback(async (isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true)
     setError(null)
     try {
       const [scheduleData, savedCodes] = await Promise.all([
-        fetchSchedule(activeTerm, token),
-        getUserCourses(session.user.id, activeTerm),
+        fetchSchedule(TERM, token),
+        getUserCourses(session.user.id, TERM),
       ])
       setEntries(scheduleData)
       setUserCourseIds(new Set(savedCodes))
@@ -37,7 +37,7 @@ export default function Schedule({ session }) {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [activeTerm, token, session.user.id, navigate])
+  }, [token, session.user.id, navigate])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -55,7 +55,7 @@ export default function Schedule({ session }) {
             <BookOpen size={14} className="text-white" />
           </div>
           <div className="hidden sm:block">
-            <p className="text-white font-semibold text-xs leading-tight">IIM Sambalpur Schedule</p>
+            <p className="text-white font-semibold text-xs leading-tight">IIM Sambalpur · Term 4</p>
             <p className="text-slate-500 text-[10px] leading-tight">{session.user.email}</p>
           </div>
         </div>
@@ -87,14 +87,10 @@ export default function Schedule({ session }) {
 
       {/* Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 pt-4">
-          <TermTabs activeTerm={activeTerm} onChange={setActiveTerm} />
-        </div>
-
         {loading && (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-500">
             <Loader size={24} className="animate-spin" />
-            <span className="text-sm">Loading Term {activeTerm} schedule…</span>
+            <span className="text-sm">Loading Term 4 schedule…</span>
           </div>
         )}
 

@@ -2,10 +2,10 @@ import { useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import CourseChip from './CourseChip'
 
-const BEFORE_LUNCH = ['08:00', '09:30', '11:00']
-const AFTER_LUNCH  = ['13:30', '15:30', '17:00', '19:00']
+const BEFORE_LUNCH = ['09:30', '11:15']
+const AFTER_LUNCH  = ['14:00', '15:45', '18:00', '20:00']
 const ALL_SLOTS    = [...BEFORE_LUNCH, ...AFTER_LUNCH]
-const SEC_ORDER    = { A: 0, B: 1, Common: 2 }
+const SEC_ORDER    = { A: 0, B: 1, C: 2, D: 3 }
 
 const tdBase  = 'px-2 py-1.5 border-b border-slate-800/70 align-top min-w-[90px]'
 const thBase  = 'px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-800 whitespace-nowrap'
@@ -150,14 +150,14 @@ export default function ScheduleGrid({ entries, userCourseIds }) {
 
 function SectionBadge({ section }) {
   const styles = {
-    A:      'bg-blue-900/40 text-blue-300 border-blue-800',
-    B:      'bg-emerald-900/40 text-emerald-300 border-emerald-800',
-    Common: 'bg-slate-700/40 text-slate-400 border-slate-700',
+    A: 'bg-blue-900/40 text-blue-300 border-blue-800',
+    B: 'bg-emerald-900/40 text-emerald-300 border-emerald-800',
+    C: 'bg-violet-900/40 text-violet-300 border-violet-800',
+    D: 'bg-amber-900/40 text-amber-300 border-amber-800',
   }
-  const label = { A: 'A', B: 'B', Common: 'All' }
   return (
-    <span className={`inline-block text-[9px] font-bold border rounded px-1 py-0.5 ${styles[section] ?? styles.Common}`}>
-      {label[section] ?? section}
+    <span className={`inline-block text-[9px] font-bold border rounded px-1 py-0.5 ${styles[section] ?? 'bg-slate-700/40 text-slate-400 border-slate-700'}`}>
+      {section}
     </span>
   )
 }
