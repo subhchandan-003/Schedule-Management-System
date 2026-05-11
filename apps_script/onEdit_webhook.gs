@@ -3,7 +3,7 @@
 // Add an INSTALLABLE onEdit trigger (not the simple onEdit).
 // Installable triggers can make external HTTP calls.
 
-const WEBHOOK_URL = "https://your-backend.railway.app/webhook/sheets";
+const WEBHOOK_URL = "https://your-project.vercel.app/_/backend/webhook/sheets";
 const TERM = "IV"; // Change per term sheet
 
 function onEdit(e) {

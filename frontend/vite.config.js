@@ -7,10 +7,11 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
-      '/upload': 'http://localhost:8000',
-      '/webhook': 'http://localhost:8000',
-      '/schedule': 'http://localhost:8000',
-      '/health': 'http://localhost:8000',
+      '/_/backend': {
+        target: 'http://localhost:8000',
+        rewrite: (path) => path.replace(/^\/_\/backend/, ''),
+        changeOrigin: true,
+      },
     },
   },
 })
