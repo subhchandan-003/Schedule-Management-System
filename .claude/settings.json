@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"d:\\\\IIM Sambalpur Schedule Management System\\\\\")",
+      "Read(//d//**)"
+    ]
+  }
+}
